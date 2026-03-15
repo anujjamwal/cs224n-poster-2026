@@ -51,7 +51,7 @@
 \footercontent{
   \href{anujjamwal.github.io}{anujjamwal.github.io} \hfill
   CS224N: Winter 2026 \hfill
-  \href{mailto:anuj.jamwal1@gmail.com}{anuj.jamwal1@gmail.com}}
+  \href{mailto:anujjam@stanford.edu}{anujjam@stanford.edu}}
 % (can be left out to remove footer)
 
 % ====================
@@ -86,68 +86,54 @@
 \begin{column}{\colwidth}
 
   \begin{block}{Introduction}
+    Large Reasoning models demonstrate emergent capabilities by scaling up Chain-of-Thought (CoT) reasoning. However, this long context introduces critical challenges:
+    \begin{itemize}
+        \item \textbf{Linear Growth:} Increases context length and KV-cache memory consumption.
+        \item \textbf{Context Disparity:} Large gap between nominal context size and effective context window.
+    \end{itemize}
 
-    Some block contents, followed by a diagram, followed by a dummy paragraph.
+    % \begin{figure}
+    %   \centering
+    %   \begin{tikzpicture}[scale=6]
+    %     \draw[step=0.25cm,color=gray] (-1,-1) grid (1,1);
+    %     \draw (1,0) -- (0.2,0.2) -- (0,1) -- (-0.2,0.2) -- (-1,0)
+    %       -- (-0.2,-0.2) -- (0,-1) -- (0.2,-0.2) -- cycle;
+    %   \end{tikzpicture}
+    %   \caption{A figure caption.}
+    % \end{figure}
 
-    \begin{figure}
-      \centering
-      \begin{tikzpicture}[scale=6]
-        \draw[step=0.25cm,color=gray] (-1,-1) grid (1,1);
-        \draw (1,0) -- (0.2,0.2) -- (0,1) -- (-0.2,0.2) -- (-1,0)
-          -- (-0.2,-0.2) -- (0,-1) -- (0.2,-0.2) -- cycle;
-      \end{tikzpicture}
-      \caption{A figure caption.}
-    \end{figure}
-
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi ultricies
-    eget libero ac ullamcorper. Integer et euismod ante. Aenean vestibulum
-    lobortis augue, ut lobortis turpis rhoncus sed. Proin feugiat nibh a
-    lacinia dignissim. Proin scelerisque, risus eget tempor fermentum, ex
-    turpis condimentum urna, quis malesuada sapien arcu eu purus.
+    We present Cognitive Compression, a method that restructures flat CoT into a hierarchical tree of subproblems using three special tokens: \texttt{[THOUGHT]}, \texttt{[SOLUTION]}, and \texttt{[RETURN]} and prunes completed reasoning branches during autoregressive generation.
 
   \end{block}
 
-  \begin{block}{Background: Metacognition}
+  \begin{block}{Background: Context Window}
 
-    Nam vulputate nunc felis, non condimentum lacus porta ultrices. Nullam sed
-    sagittis metus. Etiam consectetur gravida urna quis suscipit.
+    In long-horizon tasks (Coding, Robotics, GUI manipulation), CoT fragments are transitory. Full fidelity is not needed once immediate goals are achieved.
+    Maintaining irrelevant history eventually causes the model to exceed its context window.
 
-    \begin{itemize}
-      \item \textbf{Mauris tempor} risus nulla, sed ornare
-      \item \textbf{Libero tincidunt} a duis congue vitae
-      \item \textbf{Dui ac pretium} morbi justo neque, ullamcorper
-    \end{itemize}
-
-    Eget augue porta, bibendum venenatis tortor.
 
   \end{block}
   
-    \begin{block}{Background: Reinforcement Learning}
-    
+    \begin{block}{Background: Redundancies in CoT}
+        Lengthy CoT produced by reasoning models often contains:
+        \begin{itemize}
+            \item \textbf{Structural Redundancy:} Digressive branches no longer relevant.
+            \item \textbf{Logical Redundancy:} Explaining trivial actions or repeating facts.
+        \end{itemize}
+        
+        Existing context compression methods (LLMLingua, Selective Context) use information-theoretic metrics but often lack the \textbf{structural awareness} required to maintain the logical state of deep reasoning.
     \end{block}
 
-  \begin{alertblock}{A highlighted block}
+  \begin{alertblock}{Key Idea: Cognitive Compression}
 
-    This block catches your eye, so \textbf{important stuff} should probably go
-    here.
-
-    Curabitur eu libero vehicula, cursus est fringilla, luctus est. Morbi
-    consectetur mauris quam, at finibus elit auctor ac. Aliquam erat volutpat.
-    Aenean at nisl ut ex ullamcorper eleifend et eu augue. Aenean quis velit
-    tristique odio convallis ultrices a ac odio.
-
+    A novel hierarchical pruning technique that restructures flat CoT into a tree of subproblems.
+    Our approach trains the model to explicitly signal the beginning and end of reasoning blocks using special tokens (\texttt{[THOUGHT]}, \texttt{[SOLUTION]}, \texttt{[RETURN]}), allowing for the physical removal of redundant intermediate thoughts from the KV-cache. This has the effect of compressing the chain of thought allowing for much larger effective context.
+    Our primary contributions are:
     \begin{itemize}
-      \item \textbf{Fusce dapibus tellus} vel tellus semper finibus. In
-        consequat, nibh sed mattis luctus, augue diam fermentum lectus.
-      \item \textbf{In euismod erat metus} non ex. Vestibulum luctus augue in
-        mi condimentum, at sollicitudin lorem viverra.
-      \item \textbf{Suspendisse vulputate} mauris vel placerat consectetur.
-        Mauris semper, purus ac hendrerit molestie, elit mi dignissim odio, in
-        suscipit felis sapien vel ex.
+        \item \textbf{Hierarchical Reasoning Framework:} We develop a "prune-aware" training regime that conditions the model to summarize its own reasoning, allowing the caller to compress the context window dynamically.
+        \item \textbf{Significant Resource Efficiency:} We demonstrate that Cognitive Compression allows a 1.5B parameter model to maintain a ~92\% completion rate even when the physical context window is reduced by 87.5\% (from 8192 to 1024 tokens).
+        \item \textbf{Graceful Degradation:} Our results show that while baseline models fail entirely when context limits are reached, our method enables the model to prioritize high-entropy logic, preserving accuracy on complex tasks even under extreme hardware constraints.
     \end{itemize}
-
-    Aenean tincidunt risus eros, at gravida lorem sagittis vel. Vestibulum ante
-    ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae.
 
   \end{alertblock}
 
@@ -157,90 +143,56 @@
 
 \begin{column}{\colwidth}
 
-  \begin{block}{A block containing an enumerated list}
+  \begin{block}{Methodology: Hierarchical Chain of Thought}
 
-    Vivamus congue volutpat elit non semper. Praesent molestie nec erat ac
-    interdum. In quis suscipit erat. \textbf{Phasellus mauris felis, molestie
-    ac pharetra quis}, tempus nec ante. Donec finibus ante vel purus mollis
-    fermentum. Sed felis mi, pharetra eget nibh a, feugiat eleifend dolor. Nam
-    mollis condimentum purus quis sodales. Nullam eu felis eu nulla eleifend
-    bibendum nec eu lorem. Vivamus felis velit, volutpat ut facilisis ac,
-    commodo in metus.
-
-    \begin{enumerate}
-      \item \textbf{Morbi mauris purus}, egestas at vehicula et, convallis
-        accumsan orci. Orci varius natoque penatibus et magnis dis parturient
-        montes, nascetur ridiculus mus.
-      \item \textbf{Cras vehicula blandit urna ut maximus}. Aliquam blandit nec
-        massa ac sollicitudin. Curabitur cursus, metus nec imperdiet bibendum,
-        velit lectus faucibus dolor, quis gravida metus mauris gravida turpis.
-      \item \textbf{Vestibulum et massa diam}. Phasellus fermentum augue non
-        nulla accumsan, non rhoncus lectus condimentum.
-    \end{enumerate}
-
-  \end{block}
-
-  \begin{block}{Fusce aliquam magna velit}
-
-    Et rutrum ex euismod vel. Pellentesque ultricies, velit in fermentum
-    vestibulum, lectus nisi pretium nibh, sit amet aliquam lectus augue vel
-    velit. Suspendisse rhoncus massa porttitor augue feugiat molestie. Sed
-    molestie ut orci nec malesuada. Sed ultricies feugiat est fringilla
-    posuere.
-
-    \begin{figure}
-      \centering
-      \begin{tikzpicture}
-        \begin{axis}[
-            scale only axis,
-            no markers,
-            domain=0:2*pi,
-            samples=100,
-            axis lines=center,
-            axis line style={-},
-            ticks=none]
-          \addplot[red] {sin(deg(x))};
-          \addplot[blue] {cos(deg(x))};
-        \end{axis}
-      \end{tikzpicture}
-      \caption{Another figure caption.}
-    \end{figure}
-
-  \end{block}
-
-  \begin{block}{Nam cursus consequat egestas}
-
-    Nulla eget sem quam. Ut aliquam volutpat nisi vestibulum convallis. Nunc a
-    lectus et eros facilisis hendrerit eu non urna. Interdum et malesuada fames
-    ac ante \textit{ipsum primis} in faucibus. Etiam sit amet velit eget sem
-    euismod tristique. Praesent enim erat, porta vel mattis sed, pharetra sed
-    ipsum. Morbi commodo condimentum massa, \textit{tempus venenatis} massa
-    hendrerit quis. Maecenas sed porta est. Praesent mollis interdum lectus,
-    sit amet sollicitudin risus tincidunt non.
-
-    Etiam sit amet tempus lorem, aliquet condimentum velit. Donec et nibh
-    consequat, sagittis ex eget, dictum orci. Etiam quis semper ante. Ut eu
-    mauris purus. Proin nec consectetur ligula. Mauris pretium molestie
-    ullamcorper. Integer nisi neque, aliquet et odio non, sagittis porta justo.
-
+    Cognitive Compression restructures reasoning into a tree of nested subproblems.
+    We introduce three special tokens into the model vocabulary:
     \begin{itemize}
-      \item \textbf{Sed consequat} id ante vel efficitur. Praesent congue massa
-        sed est scelerisque, elementum mollis augue iaculis.
-        \begin{itemize}
-          \item In sed est finibus, vulputate
-            nunc gravida, pulvinar lorem. In maximus nunc dolor, sed auctor eros
-            porttitor quis.
-          \item Fusce ornare dignissim nisi. Nam sit amet risus vel lacus
-            tempor tincidunt eu a arcu.
-          \item Donec rhoncus vestibulum erat, quis aliquam leo
-            gravida egestas.
-        \end{itemize}
-      \item \textbf{Sed luctus, elit sit amet} dictum maximus, diam dolor
-        faucibus purus, sed lobortis justo erat id turpis.
-      \item \textbf{Pellentesque facilisis dolor in leo} bibendum congue.
-        Maecenas congue finibus justo, vitae eleifend urna facilisis at.
+      \item \texttt{[THOUGHT]} marks the start of reasoning for a subproblem,
+      \item \texttt{[SOLUTION]} marks the transition from verbose reasoning to a concise summary,
+      \item \texttt{[RETURN]} signals that the subproblem is complete and the branch can be pruned.
     \end{itemize}
+    Together these tokens encode a recursive structure analogous to a function call stack:
+    
+    \begin{equation*}
+      \label{eq:pruning-rule}
+      \mathbf{C} \;\texttt{[THOUGHT]}\; \mathbf{T} \;\texttt{[SOLUTION]}\; \mathbf{S} \;\texttt{[RETURN]}
+      \;\;\Longrightarrow\;\;
+      \mathbf{C} \texttt{[THOUGHT]}\ \;\mathbf{S} \texttt{[RETURN]}
+    \end{equation*}
+    where $\mathbf{C}$ is the preceding context, $\mathbf{T}$ is the verbose thought, and $\mathbf{S}$ is the concise solution summary.
+     
+  \end{block}
 
+  \begin{block}{Model Training}
+    Naïve planning with attention masking fails at inference where tokens are physically absent. We implement \textbf{prune-aware training}:
+    \begin{enumerate}
+        \item  Split training examples into stages at each `\texttt{[RETURN]}`.
+        \item  Treat each stage as an independent training example.
+        \item  Mask labels for already-processed prefix tokens.
+    \end{enumerate}
+    
+    \textbf{Dataset:} ~1,500 hierarchically annotated mathematical reasoning traces from OpenMathReasoning. anujjamwal/OpenMathReasoning-Sampled-Hierarchical-Cot
+    
+    \textbf{Base Model:} nvidia/OpenMath-Nemotron-1.5B.
+    
+    \textbf{Trained Model:} anujjamwal/OpenMath-Nemotron-1.5B-PruneAware.
+  \end{block}
+
+  \begin{block}{Inference: Context Pruning}
+
+    Implemented a custom generation loop extending HuggingFace's `GenerationMixin` with pruning-aware logic. The loop retains the existing logic for sampling and preparation pipeline.
+
+    \textbf{Algorithm:}
+    
+    When a `\texttt{[RETURN]}` token is generated:
+    \begin{enumerate}
+        \item Physically remove thought content (between `\texttt{[THOUGHT]}` and `\texttt{[SOLUTION]}`) from token buffer.
+        \item Trim KV cache to the prefix.
+        \item Re-process solution tokens against the cached prefix (cost $O(k)$ where $k$ is solution length).
+        \item Renumber Position IDs to be contiguous.
+    
+    \end{enumerate}
   \end{block}
 
 \end{column}
@@ -248,70 +200,41 @@
 \separatorcolumn
 
 \begin{column}{\colwidth}
-
-  \begin{block}{A block containing some math}
-
-    Nullam non est elit. In eu ornare justo. Maecenas porttitor sodales lacus,
-    ut cursus augue sodales ac.
-
-    $$
-    \int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
-    $$
-
-    Interdum et malesuada fames $\{1, 4, 9, \ldots\}$ ac ante ipsum primis in
-    faucibus. Cras eleifend dolor eu nulla suscipit suscipit. Sed lobortis non
-    felis id vulputate.
-
-    \heading{A heading inside a block}
-
-    Praesent consectetur mi $x^2 + y^2$ metus, nec vestibulum justo viverra
-    nec. Proin eget nulla pretium, egestas magna aliquam, mollis neque. Vivamus
-    dictum $\mathbf{u}^\intercal\mathbf{v}$ sagittis odio, vel porta erat
-    congue sed. Maecenas ut dolor quis arcu auctor porttitor.
-
-    \heading{Another heading inside a block}
-
-    Sed augue erat, scelerisque a purus ultricies, placerat porttitor neque.
-    Donec $P(y \mid x)$ fermentum consectetur $\nabla_x P(y \mid x)$ sapien
-    sagittis egestas. Duis eget leo euismod nunc viverra imperdiet nec id
-    justo.
-
+  \begin{block}{Experiments \& Evaluation}
+    \textbf{Evaluated on:} PolyMath dataset (mathematical reasoning).
+    
+    \textbf{Comparison:} Baseline (no compression) vs. Cognitive Compression.
+    
+    \textbf{Metrics:}
+    \begin{itemize}
+        \item \textbf{Accuracy (Pass@1):} Percentage of correct final answers.
+        \item \textbf{Completion Rate:} Proportion of problems reaching EOS within context limits.
+    \end{itemize}
   \end{block}
 
-  \begin{block}{Nullam vel erat at velit convallis laoreet}
+  \begin{block}{Results}
+    \begin{itemize}
+        \item \textbf{Completion Rate Preservation:} Maintained average 92\% completion rate even when physical context window was reduced by 87.5\% (from 8192 to 1024 tokens).
+        \item \textbf{Accuracy Stability:} Accuracy remains largely stable until context drops below 2048 tokens.
+        \item \textbf{Graceful Degradation:} Avoids catastrophic failure; prioritizes high-entropy logic under extreme constraints.
+    \end{itemize}
+    \begin{center}
+        \includegraphics[width=0.9\linewidth]{model_comparison_plot_pct.png}
+    \end{center}
+    \begin{center}
+        \includegraphics[width=0.9\linewidth]{correct_model_comparison_plot_pct.png}
+    \end{center}
+  \end{block}
 
-    Class aptent taciti sociosqu ad litora torquent per conubia nostra, per
-    inceptos himenaeos. Phasellus libero enim, gravida sed erat sit amet,
-    scelerisque congue diam. Fusce dapibus dui ut augue pulvinar iaculis.
+  \begin{block}{Conclusion}
 
-    \begin{table}
-      \centering
-      \begin{tabular}{l r r c}
-        \toprule
-        \textbf{First column} & \textbf{Second column} & \textbf{Third column} & \textbf{Fourth} \\
-        \midrule
-        Foo & 13.37 & 384,394 & $\alpha$ \\
-        Bar & 2.17 & 1,392 & $\beta$ \\
-        Baz & 3.14 & 83,742 & $\delta$ \\
-        Qux & 7.59 & 974 & $\gamma$ \\
-        \bottomrule
-      \end{tabular}
-      \caption{A table caption.}
-    \end{table}
+    Cognitive Compression is a powerful tool for efficient long-context modeling:
+    \begin{itemize}
+        \item Optimizes inference on hardware-constrained systems.
+        \item Distinguishes between intermediate "thought" and terminal "solution" tokens.
+        \item Enables graceful degradation rather than system failure.
 
-    Donec quis posuere ligula. Nunc feugiat elit a mi malesuada consequat. Sed
-    imperdiet augue ac nibh aliquet tristique. Aenean eu tortor vulputate,
-    eleifend lorem in, dictum urna. Proin auctor ante in augue tincidunt
-    tempor. Proin pellentesque vulputate odio, ac gravida nulla posuere
-    efficitur. Aenean at velit vel dolor blandit molestie. Mauris laoreet
-    commodo quam, non luctus nibh ullamcorper in. Class aptent taciti sociosqu
-    ad litora torquent per conubia nostra, per inceptos himenaeos.
-
-    Nulla varius finibus volutpat. Mauris molestie lorem tincidunt, iaculis
-    libero at, gravida ante. Phasellus at felis eu neque suscipit suscipit.
-    Integer ullamcorper, dui nec pretium ornare, urna dolor consequat libero,
-    in feugiat elit lorem euismod lacus. Pellentesque sit amet dolor mollis,
-    auctor urna non, tempus sem.
+    \end{itemize}
 
   \end{block}
 
