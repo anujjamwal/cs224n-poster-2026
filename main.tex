@@ -19,6 +19,7 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tikz}
+\usetikzlibrary{arrows, positioning, calc} % Changed to 'arrows'
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.17}
 
@@ -102,20 +103,22 @@
     %   \caption{A figure caption.}
     % \end{figure}
 
-    We present Cognitive Compression, a method that restructures flat CoT into a hierarchical tree of subproblems using three special tokens: \texttt{[THOUGHT]}, \texttt{[SOLUTION]}, and \texttt{[RETURN]} and prunes completed reasoning branches during autoregressive generation.
+    Another problem arises in the domain of tasks where the context, if unchecked, can grow infinitely with time like Coding tasks, Control tasks like controlling GUI or Robot motion.
 
   \end{block}
 
   \begin{block}{Background: Context Window}
-
-    In long-horizon tasks (Coding, Robotics, GUI manipulation), CoT fragments are transitory. Full fidelity is not needed once immediate goals are achieved.
-    Maintaining irrelevant history eventually causes the model to exceed its context window.
-
-
-  \end{block}
+    There are categories of problems where context window growth poses a problem
+    \begin{itemize}
+        \item \textbf{Context Augmentative Task:} These are tasks that operate on context and as such need to import large chunks of information into the context. These include RAG, Code understanding and Data Analysis tasks.
+        \item \textbf{Long Horizon Tasks:} These tasks operate for a long period of time and generally involve tool invocation at different points during the inference. These tasks include Robotic Control, GUI Manipulation, Coding and "world" exploration to name a few.
+    \end{itemize}
+    
+    In both category of tasks, the context length grows until it eventually runs out of memory. All these tasks require a long context window, however this need is transitory and once the subproblem is resolved, the context becomes redundant.
+    \end{block}
   
     \begin{block}{Background: Redundancies in CoT}
-        Lengthy CoT produced by reasoning models often contains:
+        Modern LLMs prefer lengthy CoT's. These CoT's are full of redundancies that can be categorized into two broad categories:
         \begin{itemize}
             \item \textbf{Structural Redundancy:} Digressive branches no longer relevant.
             \item \textbf{Logical Redundancy:} Explaining trivial actions or repeating facts.
@@ -161,10 +164,15 @@
       \mathbf{C} \texttt{[THOUGHT]}\ \;\mathbf{S} \texttt{[RETURN]}
     \end{equation*}
     where $\mathbf{C}$ is the preceding context, $\mathbf{T}$ is the verbose thought, and $\mathbf{S}$ is the concise solution summary.
+
+    \begin{figure}
+        \includegraphics[width=0.9\linewidth]{hierarchical-chain-of-thought.png}
+        \caption{Comparison: Chain of Thought to Hierarchical Chain of Thought}
+    \end{figure}
      
   \end{block}
 
-  \begin{block}{Model Training}
+  \begin{block}{Methodology: Model Training}
     Naïve planning with attention masking fails at inference where tokens are physically absent. We implement \textbf{prune-aware training}:
     \begin{enumerate}
         \item  Split training examples into stages at each `\texttt{[RETURN]}`.
@@ -179,7 +187,7 @@
     \textbf{Trained Model:} anujjamwal/OpenMath-Nemotron-1.5B-PruneAware.
   \end{block}
 
-  \begin{block}{Inference: Context Pruning}
+  \begin{block}{Methodology: Inference with Context Pruning}
 
     Implemented a custom generation loop extending HuggingFace's `GenerationMixin` with pruning-aware logic. The loop retains the existing logic for sampling and preparation pipeline.
 
